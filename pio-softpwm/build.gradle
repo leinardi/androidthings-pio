@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Roberto Leinardi.
+ * Copyright 2018 Roberto Leinardi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,20 @@ android {
         versionCode build_versions.version_code
         versionName mvn_config.version as String
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters 'armeabi-v7a', 'x86'
+        }
+        externalNativeBuild {
+            cmake {
+                arguments "-DPROJECT_DIR=${rootProject.projectDir}"
+            }
+        }
     }
-
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+        }
+    }
     compileOptions {
         sourceCompatibility build_versions.java_version
         targetCompatibility build_versions.java_version

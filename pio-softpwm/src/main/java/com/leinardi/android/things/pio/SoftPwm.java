@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Roberto Leinardi.
+ * Copyright 2018 Roberto Leinardi.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,10 @@
 
 package com.leinardi.android.things.pio;
 
-import android.util.Log;
-
-import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.pio.Pwm;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Controls a GPIO pin providing PWM capabilities. Opening a GPIO pin takes ownership of it for the whole system,
@@ -31,22 +27,17 @@ import java.util.concurrent.TimeUnit;
  * prevent anyone (including the same process/app) from using the GPIO.
  */
 public class SoftPwm extends Pwm {
-    public static final int MAX_FREQ = 5000; // 5 kHz
-    private static final int NANOS_PER_MILLI = (int) TimeUnit.MILLISECONDS.toNanos(1);
-    private static final long HZ_IN_NANOSECONDS = (int) TimeUnit.SECONDS.toNanos(1);
+    public static final int MAX_FREQ = 300;
     private static final String TAG = SoftPwm.class.getSimpleName();
-    private Gpio mGpio;
-    private double mFreq;
-    private double mDutyCycle;
-    private Thread mThread;
-    private long mPeriodTotal;
-    private long mPeriodHighMs;
-    private int mPeriodHighNs;
-    private long mPeriodLowMs;
-    private int mPeriodLowNs;
-    private boolean mEnabled;
 
-    private SoftPwm() {
+    static {
+        System.loadLibrary("softpwm");
+    }
+
+    private final long mJniSoftPwmPtr;
+
+    private SoftPwm(String gpioName) throws IOException {
+        mJniSoftPwmPtr = jniSoftPwmNew(gpioName);
     }
 
     /**
@@ -57,35 +48,13 @@ public class SoftPwm extends Pwm {
      * @return The {@link SoftPwm} object
      * @throws IOException
      */
-    public static Pwm openSoftPwm(String gpioName) throws IOException {
-        PeripheralManagerService manager = new PeripheralManagerService();
-        SoftPwm softPwm = new SoftPwm();
-        Gpio gpio = manager.openGpio(gpioName);
-        gpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-        softPwm.setGpio(gpio);
-        return softPwm;
-    }
-
-    private void setGpio(Gpio gpio) {
-        mGpio = gpio;
+    public static SoftPwm openSoftPwm(String gpioName) throws IOException {
+        return new SoftPwm(gpioName);
     }
 
     @Override
     public void close() {
-        try {
-            stopThread();
-        } catch (IOException e) {
-            Log.w(TAG, "An error occurred while stopping the thread", e);
-        }
-        if (mGpio != null) {
-            try {
-                mGpio.close();
-            } catch (IOException e) {
-                Log.w(TAG, "Unable to close GPIO device", e);
-            } finally {
-                mGpio = null;
-            }
-        }
+        jniSoftPwmDelete(mJniSoftPwmPtr);
     }
 
     /**
@@ -97,69 +66,7 @@ public class SoftPwm extends Pwm {
      */
     @Override
     public void setEnabled(boolean enabled) throws IOException {
-        if (mGpio == null) {
-            throw new IllegalStateException("GPIO Device not open");
-        }
-        if (mFreq == 0) {
-            throw new IllegalStateException("Frequency must be set via setPwmFrequencyHz() before enabling the pin");
-        }
-        if (mEnabled != enabled) {
-            mEnabled = enabled;
-            if (enabled) {
-                startNewThread();
-            } else {
-                stopThread();
-            }
-        }
-    }
-
-    private void startNewThread() throws IOException {
-        stopThread();
-        mThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        if (mPeriodHighMs != 0 || mPeriodHighNs != 0) {
-                            mGpio.setValue(true);
-                            Thread.sleep(mPeriodHighMs, mPeriodHighNs);
-                        }
-                        if (mPeriodLowMs != 0 || mPeriodLowNs != 0) {
-                            mGpio.setValue(false);
-                            Thread.sleep(mPeriodLowMs, mPeriodLowNs);
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    } catch (IOException e) {
-                        Log.e(TAG, "GPIO error", e);
-                        try {
-                            stopThread();
-                        } catch (IOException ignored) {
-                        }
-                    }
-                }
-            }
-        });
-        mThread.setPriority(Thread.MAX_PRIORITY);
-        mThread.setName("softpwm-thread");
-        mThread.start();
-    }
-
-    private void stopThread() throws IOException {
-        if (mThread != null && mThread.isAlive()) {
-            mThread.interrupt();
-        }
-        mGpio.setValue(false);
-    }
-
-    /**
-     * Get the duty cycle.
-     *
-     * @return A double between 0 and 100 (inclusive).
-     */
-    public double getPwmDutyCycle() {
-        return mDutyCycle;
+        jniSoftPwmSetEnabled(mJniSoftPwmPtr, enabled);
     }
 
     /**
@@ -173,28 +80,13 @@ public class SoftPwm extends Pwm {
             throw new IllegalArgumentException("Invalid duty cycle value (must be between 0 and 100 included). "
                     + "Duty cycle:" + dutyCycle);
         }
-        mDutyCycle = dutyCycle;
-        mPeriodHighNs = (int) Math.round(mPeriodTotal / 100f * dutyCycle);
-        mPeriodLowNs = (int) (mPeriodTotal - mPeriodHighNs);
-        mPeriodHighMs = mPeriodHighNs / NANOS_PER_MILLI;
-        mPeriodHighNs %= NANOS_PER_MILLI;
-        mPeriodLowMs = mPeriodLowNs / NANOS_PER_MILLI;
-        mPeriodLowNs %= NANOS_PER_MILLI;
-    }
-
-    /**
-     * Get the frequency of the signal.
-     *
-     * @return Frequency in Hertz to use for the signal. Must be positive.
-     */
-    public double getPwmFrequencyHz() {
-        return mFreq;
+        jniSoftPwmSetPwmDutyCycle(mJniSoftPwmPtr, dutyCycle);
     }
 
     /**
      * Set the frequency of the signal.
      *
-     * @param freqHz Frequency in Hertz to use for the signal. Must be positive (max 5 kHz).
+     * @param freqHz Frequency in Hertz to use for the signal. Must be positive (max 300 Hz).
      */
     @Override
     public void setPwmFrequencyHz(double freqHz) {
@@ -202,8 +94,30 @@ public class SoftPwm extends Pwm {
             throw new IllegalArgumentException("Invalid frequency value (must be bigger than 0 and lower than "
                     + MAX_FREQ + "Hz). Freq:" + freqHz);
         }
-        mFreq = freqHz;
-        mPeriodTotal = Math.round(HZ_IN_NANOSECONDS / freqHz);
-        setPwmDutyCycle(mDutyCycle);
+        if (freqHz > 40) {
+            double adjustedFreq = regressionLine(freqHz);
+            jniSoftPwmSetPwmFrequencyHz(mJniSoftPwmPtr, adjustedFreq);
+        } else {
+            jniSoftPwmSetPwmFrequencyHz(mJniSoftPwmPtr, freqHz);
+        }
+
     }
+
+    /**
+     * For higher frequencies we need to compensate a little to stay close to the desired value.
+     * This equation represent the regression line: https://en.wikipedia.org/wiki/Least_squares
+     */
+    private double regressionLine(double freqHz) {
+        return -6.261 + (1.151 * freqHz);
+    }
+
+    private native long jniSoftPwmNew(String gpioName) throws IOException;
+
+    private native void jniSoftPwmDelete(long ptr);
+
+    private native void jniSoftPwmSetEnabled(long ptr, boolean enabled);
+
+    private native void jniSoftPwmSetPwmDutyCycle(long ptr, double dutyCycle);
+
+    private native void jniSoftPwmSetPwmFrequencyHz(long ptr, double freqHz);
 }
