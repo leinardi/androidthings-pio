@@ -6,7 +6,8 @@
 
 This library provides a software PWM that can be used with any GPIO pin.
 
-**NOTE**: PWM signals that are not driven from a hardware channel 
+## Warning
+PWM signals that are not driven from a hardware channel 
 are destined to be **too inaccurate for most use cases**.
 The multiprocess and multithreaded nature of a system like
 Android makes it too likely for the scheduler to cause minor
@@ -15,6 +16,8 @@ disruptions that affect the output signal.
 One common use case for software PWM is power the speed of DC
 motors (e.g. via the L298) if the accuracy of the speed is not
 that important. If possible always use [hardware PWM](https://developer.android.com/things/sdk/pio/pwm.html).
+
+Currently the maximum frequency supported by this library is 300 Hz.
 
 ## How to use SoftPWM
 
