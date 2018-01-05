@@ -29,4 +29,4 @@ android:
 
 script:
   - ./gradlew clean check --profile
-  - for f in build/reports/profile/profile-*.html; do pandoc $f -t plain; break; done
+  - pandoc `ls -1rt build/reports/profile/profile-*.html | tail -n1` -t plain
