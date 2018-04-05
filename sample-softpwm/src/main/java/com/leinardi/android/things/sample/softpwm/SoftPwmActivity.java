@@ -20,7 +20,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.google.android.things.pio.PeripheralManagerService;
+import com.google.android.things.pio.PeripheralManager;
 import com.google.android.things.pio.Pwm;
 import com.leinardi.android.things.pio.SoftPwm;
 
@@ -40,7 +40,7 @@ public class SoftPwmActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.i(TAG, "Starting SoftPwmActivity");
-        PeripheralManagerService pioService = new PeripheralManagerService();
+        PeripheralManager pioService = PeripheralManager.getInstance();
         try {
             mSoftPwm = SoftPwm.openSoftPwm("BCM21");
             mHardPwm = pioService.openPwm("PWM0");
