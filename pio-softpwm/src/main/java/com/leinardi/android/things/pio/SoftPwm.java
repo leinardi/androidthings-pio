@@ -16,7 +16,7 @@
 
 package com.leinardi.android.things.pio;
 
-import com.google.android.things.pio.PeripheralManagerService;
+import com.google.android.things.pio.PeripheralManager;
 import com.google.android.things.pio.Pwm;
 
 import java.io.IOException;
@@ -26,7 +26,7 @@ import java.io.IOException;
  * preventing anyone else from opening/accessing the GPIO until you call close(). Forgetting to call close() will
  * prevent anyone (including the same process/app) from using the GPIO.
  */
-public class SoftPwm extends Pwm {
+public class SoftPwm implements Pwm {
     public static final int MAX_FREQ = 300;
     private static final String TAG = SoftPwm.class.getSimpleName();
 
@@ -44,7 +44,7 @@ public class SoftPwm extends Pwm {
      * Open a GPIO pin providing software PWM. A GPIO pin can only be opened once at any given time on the system.
      * To close and release the GPIO pin, you need to call close() explicitly.
      *
-     * @param gpioName Name of the GPIO pin as returned by  {@link PeripheralManagerService#getGpioList()}.
+     * @param gpioName Name of the GPIO pin as returned by  {@link PeripheralManager#getGpioList()}.
      * @return The {@link SoftPwm} object
      * @throws IOException
      */
