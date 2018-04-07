@@ -21,7 +21,8 @@
 ext.deps = [:]
 def versions = [:]
 versions.android_checkstyle_plugin = "1.0.0"
-versions.android_gradle_plugin = "3.0.1"
+versions.android_gradle_plugin = "3.1.0"
+versions.android_maven_gradle_plugin = "2.1"
 versions.androidthings = "0.7-devpreview"
 versions.apache_commons = "2.5"
 versions.arch = hasProperty("ARCH_VERSION") ? getProperty("ARCH_VERSION") : "1.0.0"
@@ -32,6 +33,8 @@ versions.dagger = "2.13"
 versions.dexmaker = "2.2.0"
 versions.espresso = "3.0.1"
 versions.glide = "3.8.0"
+versions.gradle_bintray_plugin = "1.8.0"
+versions.gradle_versions_plugin = "0.17.0"
 versions.hamcrest = "1.3"
 versions.joystick = "1.1.0"
 versions.junit = "4.12"
@@ -45,7 +48,7 @@ versions.play_services = "11.6.2"
 versions.retrofit = "2.3.0"
 versions.rx_android = "2.0.1"
 versions.rxjava2 = "2.1.7"
-versions.support = "27.0.2"
+versions.support = "27.1.1"
 versions.timber = "4.6.0"
 ext.versions = versions
 
@@ -148,10 +151,13 @@ deps.kotlin = kotlin
 
 deps.android_checkstyle_plugin = "com.leinardi.android:android-checkstyle-plugin:$versions.android_checkstyle_plugin"
 deps.android_gradle_plugin = "com.android.tools.build:gradle:$versions.android_gradle_plugin"
+deps.android_maven_gradle_plugin = "com.github.dcendents:android-maven-gradle-plugin:$versions.android_maven_gradle_plugin"
 deps.androidthings = "com.google.android.things:androidthings:$versions.androidthings"
 deps.constraint_layout = "com.android.support.constraint:constraint-layout:$versions.constraint_layout"
 deps.dexmaker = "com.linkedin.dexmaker:dexmaker-mockito:$versions.dexmaker"
 deps.glide = "com.github.bumptech.glide:glide:$versions.glide"
+deps.gradle_bintray_plugin = "com.jfrog.bintray.gradle:gradle-bintray-plugin:$versions.gradle_bintray_plugin"
+deps.gradle_versions_plugin = "com.github.ben-manes:gradle-versions-plugin:$versions.gradle_versions_plugin"
 deps.hamcrest = "org.hamcrest:hamcrest-all:$versions.hamcrest"
 deps.joystick = "com.github.erz05:JoyStick:$versions.joystick"
 deps.junit = "junit:junit:$versions.junit"
@@ -164,8 +170,8 @@ ext.deps = deps
 
 def build_versions = [:]
 build_versions.min_sdk = 24
-build_versions.target_sdk = 26
-build_versions.build_tools = "26.0.2"
+build_versions.target_sdk = 27
+build_versions.build_tools = "27.0.3"
 build_versions.java_version = JavaVersion.VERSION_1_7
 build_versions.version_code = 'git rev-list --count HEAD'.execute().text.trim() as int
 ext.build_versions = build_versions
@@ -175,7 +181,7 @@ def addRepos(RepositoryHandler handler) {
     handler.google()
     handler.jcenter()
     handler.mavenCentral()
-    handler.maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+//    handler.maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
 }
 
 ext.addRepos = this.&addRepos
