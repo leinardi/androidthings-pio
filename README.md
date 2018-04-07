@@ -25,7 +25,7 @@ below to your project's `build.gradle`:
 
 ```
 dependencies {
-    compile 'com.leinardi.android.things:pio-softpwm:0.1'
+    compile 'com.leinardi.android.things:pio-softpwm:0.2'
 }
 ```
 
