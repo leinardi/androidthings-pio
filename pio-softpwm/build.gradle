@@ -30,7 +30,7 @@ android {
         versionName mvn_config.version as String
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk {
-            abiFilters 'armeabi-v7a', 'x86'
+            abiFilters 'armeabi-v7a'
         }
         externalNativeBuild {
             cmake {
